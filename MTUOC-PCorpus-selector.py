@@ -52,11 +52,11 @@ command="SELECT source,target, scoreSBERT FROM PCorpus where detSL=\""+sl+"\" an
 cur.execute(command)
 
 data=cur.fetchall()
-
+print(len(data))
 for d in data:
     source=d[0]
     target=d[1]
     scoreSBERT=d[2]
     cadena=source+"\t"+target
-    print(cadena)
+    #print(cadena)
     sortida.write(cadena+"\n")

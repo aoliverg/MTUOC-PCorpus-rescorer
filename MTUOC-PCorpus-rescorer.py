@@ -23,6 +23,39 @@ import fasttext
 from sentence_transformers import SentenceTransformer, util
 
 
+def process(sources,targets,scores):
+    data=[]
+    embeddings1 = model.encode(sources, convert_to_tensor=False)
+    embeddings2 = model.encode(targets, convert_to_tensor=False)
+    cosine_scores = util.cos_sim(embeddings1, embeddings2)
+    for i in range(len(sources)):
+        try:
+            source=sources[i]
+            target=targets[i]
+            score=float(scores[i])
+            cosine_score=cosine_scores[i][i].item()
+            DL1=modelFT.predict(source, k=1)
+            DL2=modelFT.predict(target, k=1)
+            L1=DL1[0][0].replace("__label__","")
+            confL1=DL1[1][0]
+            L2=DL2[0][0].replace("__label__","")
+            confL2=DL2[1][0]
+            record=[]
+            record.append(source)
+            record.append(target)
+            record.append(score)
+            record.append(L1)
+            record.append(confL1)
+            record.append(L2)
+            record.append(confL2)
+            record.append(cosine_score)
+            data.append(record)
+        except:
+            pass
+    cur.executemany("INSERT INTO PCorpus (source, target, score, detSL, SLconf, detTL, TLconf, scoreSBERT) VALUES (?,?,?,?,?,?,?,?)",data)
+    data=[]
+    conn.commit()
+
 parser = argparse.ArgumentParser(description='MTUOC-PCorpus-rescorer: a script to score parallel corpora. The parallel corpus file should be a TSV file with source segment, target segment and, optionally, a score. It creates a Sqlite database that should be used with the companion program MTUOC-PCorpus-selector.')
 parser.add_argument("-i","--input", type=str, help="The input parallel corpus file.", required=True)
 parser.add_argument("-d","--database", type=str, help="The SQLITE database file.", required=True)
@@ -30,7 +63,7 @@ parser.add_argument("-s","--sl", type=str, help="The source language code langua
 parser.add_argument("-t","--tl", type=str, help="The target language code language", required=True)
 parser.add_argument("-SEmodel",type=str, help="The SentenceTransformer model. Default model: LaBSE", required=False, default="LaBSE")
 parser.add_argument("-LDmodel",type=str, help="The fasttext language detection model. Default model: lid.176.bin", required=False, default="lid.176.bin")
-
+maxlines=10000
 args = parser.parse_args()
 
 fentrada=args.input
@@ -59,52 +92,38 @@ entrada=codecs.open(fentrada,"r",encoding="utf-8")
 cont=0
 sources=[]
 targets=[]
+scores=[]
 
-data=[]
+
+cont=0
+cont2=1
 for linia in entrada:
     linia=linia.rstrip()
+    camps=linia.split("\t")
     try:
-        record=[]
-        cont+=1        
-        camps=linia.split("\t")
-        source=camps[0]
-        target=camps[1]
+        sources.append(camps[0])
+        targets.append(camps[1])
         if len(camps)>=3:
-            score=float(camps[2])
+            scores.append(camps[2])
         else:
-            score=None
-        DL1=modelFT.predict(source, k=1)
-        DL2=modelFT.predict(target, k=1)
-        L1=DL1[0][0].replace("__label__","")
-        confL1=DL1[1][0]
-        L2=DL2[0][0].replace("__label__","")
-        confL2=DL2[1][0]
-        if L1==l1 and L2==l2:
-            embeddings1 = model.encode([source], convert_to_tensor=False)
-            embeddings2 = model.encode([target], convert_to_tensor=False)
-            #Compute cosine-similarities
-            cosine_scores = util.cos_sim(embeddings1, embeddings2)
-            cosine_score=cosine_scores[0][0].item()
-        else:
-            cosine_score=0
-        record.append(source)
-        record.append(target)
-        record.append(score)
-        record.append(L1)
-        record.append(confL1)
-        record.append(L2)
-        record.append(confL2)
-        record.append(cosine_score)
-        data.append(record)
-        if cont%1000==0:
-            print(cont/1000,"K segments")
-            cur.executemany("INSERT INTO PCorpus (source, target, score, detSL, SLconf, detTL, TLconf, scoreSBERT) VALUES (?,?,?,?,?,?,?,?)",data)
-            data=[]
-            conn.commit()
+            scores.append(0)
     except:
-        print("ERROR:",sys.exc_info())
+        pass
+    cont+=1
+    if cont%maxlines==0:
+        print("CONT: ",cont2*maxlines)
+        cont2+=1
+    if cont==maxlines:
+        process(sources,targets,scores)
+        cont=0
+        sources=[]
+        targets=[]
+        scores=[]
+process(sources,targets,scores)
+    
+
+    
+
         
-cur.executemany("INSERT INTO PCorpus (source, target, score, detSL, SLconf, detTL, TLconf, scoreSBERT) VALUES (?,?,?,?,?,?,?,?)",data)
-data=[]
-conn.commit()
+
 
