@@ -59,8 +59,6 @@ def process(sources,targets,scores):
 parser = argparse.ArgumentParser(description='MTUOC-PCorpus-rescorer: a script to score parallel corpora. The parallel corpus file should be a TSV file with source segment, target segment and, optionally, a score. It creates a Sqlite database that should be used with the companion program MTUOC-PCorpus-selector.')
 parser.add_argument("-i","--input", type=str, help="The input parallel corpus file.", required=True)
 parser.add_argument("-d","--database", type=str, help="The SQLITE database file.", required=True)
-parser.add_argument("-s","--sl", type=str, help="The source language code language", required=True)
-parser.add_argument("-t","--tl", type=str, help="The target language code language", required=True)
 parser.add_argument("-SEmodel",type=str, help="The SentenceTransformer model. Default model: LaBSE", required=False, default="LaBSE")
 parser.add_argument("-LDmodel",type=str, help="The fasttext language detection model. Default model: lid.176.bin", required=False, default="lid.176.bin")
 maxlines=10000
@@ -68,8 +66,6 @@ args = parser.parse_args()
 
 fentrada=args.input
 database=args.database
-l1=args.sl
-l2=args.tl
 SEmodel=args.SEmodel
 LDmodel=args.LDmodel
 
