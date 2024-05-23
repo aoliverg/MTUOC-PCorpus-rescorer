@@ -57,6 +57,8 @@ for d in data:
     source=d[0]
     target=d[1]
     scoreSBERT=d[2]
+    if source.startswith("'") and source.endswith("'"): source=source[1:-1]
+    if target.startswith("'") and target.endswith("'"): target=target[1:-1]
     cadena=source+"\t"+target
     #print(cadena)
     sortida.write(cadena+"\n")
